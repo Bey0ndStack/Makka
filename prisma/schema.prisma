@@ -1,0 +1,313 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserStatus {
+  ACTIVE
+  SUSPENDED
+}
+
+enum MerchantStatus {
+  ACTIVE
+  INACTIVE
+  ARCHIVED
+}
+
+enum InvoiceStatus {
+  DRAFT
+  CONFIRMED
+  CANCELLED
+}
+
+enum PaymentStatus {
+  COMPLETED
+  REVERSED
+}
+
+enum PaymentMethod {
+  CASH
+  BANK_TRANSFER
+  CARD
+  OTHER
+}
+
+enum ImportStatus {
+  VALIDATING
+  COMPLETED
+  COMPLETED_WITH_ERRORS
+  FAILED
+}
+
+model User {
+  id                String              @id @default(cuid())
+  name              String
+  email             String              @unique
+  passwordHash      String
+  status            UserStatus          @default(ACTIVE)
+  lastLoginAt       DateTime?
+  createdAt         DateTime            @default(now())
+  updatedAt         DateTime            @updatedAt
+  roles             UserRole[]
+  createdMerchants  Merchant[]          @relation("MerchantCreatedBy")
+  updatedMerchants  Merchant[]          @relation("MerchantUpdatedBy")
+  createdInvoices   Invoice[]           @relation("InvoiceCreatedBy")
+  updatedInvoices   Invoice[]           @relation("InvoiceUpdatedBy")
+  cancelledInvoices Invoice[]           @relation("InvoiceCancelledBy")
+  createdPayments   Payment[]           @relation("PaymentCreatedBy")
+  updatedPayments   Payment[]           @relation("PaymentUpdatedBy")
+  reversedPayments  Payment[]           @relation("PaymentReversedBy")
+  allocations       PaymentAllocation[]
+  auditLogs         AuditLog[]
+  importBatches     ImportBatch[]
+
+  @@index([status])
+  @@map("users")
+}
+
+model Role {
+  id          String           @id @default(cuid())
+  key         String           @unique
+  name        String
+  description String
+  users       UserRole[]
+  permissions RolePermission[]
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+
+  @@map("roles")
+}
+
+model Permission {
+  id          String           @id @default(cuid())
+  key         String           @unique
+  description String
+  roles       RolePermission[]
+
+  @@map("permissions")
+}
+
+model UserRole {
+  userId String
+  roleId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role   Role   @relation(fields: [roleId], references: [id], onDelete: Restrict)
+
+  @@id([userId, roleId])
+  @@index([roleId])
+  @@map("user_roles")
+}
+
+model RolePermission {
+  roleId       String
+  permissionId String
+  role         Role       @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  permission   Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
+
+  @@id([roleId, permissionId])
+  @@index([permissionId])
+  @@map("role_permissions")
+}
+
+model Merchant {
+  id             String         @id @default(cuid())
+  merchantCode   String         @unique
+  name           String
+  phone          String
+  alternatePhone String?
+  address        String?
+  city           String?
+  region         String?
+  status         MerchantStatus @default(ACTIVE)
+  notes          String?
+  createdById    String?
+  updatedById    String?
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+  createdBy      User?          @relation("MerchantCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
+  updatedBy      User?          @relation("MerchantUpdatedBy", fields: [updatedById], references: [id], onDelete: SetNull)
+  invoices       Invoice[]
+  payments       Payment[]
+
+  @@index([name])
+  @@index([phone])
+  @@index([status, city])
+  @@index([createdAt])
+  @@map("merchants")
+}
+
+model Product {
+  id           String        @id @default(cuid())
+  sku          String        @unique
+  name         String
+  description  String?
+  unit         String        @default("قطعة")
+  defaultPrice Decimal       @db.Decimal(12, 2)
+  isActive     Boolean       @default(true)
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+  invoiceItems InvoiceItem[]
+
+  @@index([name])
+  @@index([isActive])
+  @@map("products")
+}
+
+model Invoice {
+  id                 String              @id @default(cuid())
+  invoiceNumber      String              @unique
+  merchantId         String
+  transactionDate    DateTime            @default(now())
+  dueDate            DateTime?
+  status             InvoiceStatus       @default(DRAFT)
+  notes              String?
+  subtotal           Decimal             @db.Decimal(12, 2)
+  totalAmount        Decimal             @db.Decimal(12, 2)
+  createdById        String?
+  updatedById        String?
+  cancelledById      String?
+  cancelledAt        DateTime?
+  cancellationReason String?
+  createdAt          DateTime            @default(now())
+  updatedAt          DateTime            @updatedAt
+  merchant           Merchant            @relation(fields: [merchantId], references: [id], onDelete: Restrict)
+  createdBy          User?               @relation("InvoiceCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
+  updatedBy          User?               @relation("InvoiceUpdatedBy", fields: [updatedById], references: [id], onDelete: SetNull)
+  cancelledBy        User?               @relation("InvoiceCancelledBy", fields: [cancelledById], references: [id], onDelete: SetNull)
+  items              InvoiceItem[]
+  allocations        PaymentAllocation[]
+
+  @@index([merchantId, status, transactionDate])
+  @@index([status, dueDate])
+  @@index([transactionDate])
+  @@map("invoices")
+}
+
+model InvoiceItem {
+  id          String   @id @default(cuid())
+  invoiceId   String
+  productId   String?
+  description String
+  quantity    Decimal  @db.Decimal(12, 3)
+  unitPrice   Decimal  @db.Decimal(12, 2)
+  subtotal    Decimal  @db.Decimal(12, 2)
+  invoice     Invoice  @relation(fields: [invoiceId], references: [id], onDelete: Restrict)
+  product     Product? @relation(fields: [productId], references: [id], onDelete: SetNull)
+
+  @@index([invoiceId])
+  @@index([productId])
+  @@map("invoice_items")
+}
+
+model Payment {
+  id             String              @id @default(cuid())
+  merchantId     String
+  amount         Decimal             @db.Decimal(12, 2)
+  paymentDate    DateTime            @default(now())
+  paymentMethod  PaymentMethod
+  reference      String?
+  notes          String?
+  status         PaymentStatus       @default(COMPLETED)
+  createdById    String?
+  updatedById    String?
+  reversedById   String?
+  reversedAt     DateTime?
+  reversalReason String?
+  createdAt      DateTime            @default(now())
+  updatedAt      DateTime            @updatedAt
+  merchant       Merchant            @relation(fields: [merchantId], references: [id], onDelete: Restrict)
+  createdBy      User?               @relation("PaymentCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
+  updatedBy      User?               @relation("PaymentUpdatedBy", fields: [updatedById], references: [id], onDelete: SetNull)
+  reversedBy     User?               @relation("PaymentReversedBy", fields: [reversedById], references: [id], onDelete: SetNull)
+  allocations    PaymentAllocation[]
+
+  @@index([merchantId, status, paymentDate])
+  @@index([status, paymentDate])
+  @@map("payments")
+}
+
+model PaymentAllocation {
+  id          String   @id @default(cuid())
+  paymentId   String
+  invoiceId   String
+  amount      Decimal  @db.Decimal(12, 2)
+  createdById String?
+  createdAt   DateTime @default(now())
+  payment     Payment  @relation(fields: [paymentId], references: [id], onDelete: Restrict)
+  invoice     Invoice  @relation(fields: [invoiceId], references: [id], onDelete: Restrict)
+  createdBy   User?    @relation(fields: [createdById], references: [id], onDelete: SetNull)
+
+  @@unique([paymentId, invoiceId])
+  @@index([invoiceId])
+  @@map("payment_allocations")
+}
+
+model AuditLog {
+  id          String   @id @default(cuid())
+  actorUserId String?
+  action      String
+  entityType  String
+  entityId    String
+  beforeData  Json?
+  afterData   Json?
+  metadata    Json     @default("{}")
+  ipAddress   String?
+  userAgent   String?
+  requestId   String?
+  createdAt   DateTime @default(now())
+  actor       User?    @relation(fields: [actorUserId], references: [id], onDelete: SetNull)
+
+  @@index([createdAt])
+  @@index([actorUserId, createdAt])
+  @@index([entityType, entityId, createdAt])
+  @@index([action, createdAt])
+  @@map("audit_logs")
+}
+
+model LoginAttempt {
+  id        String   @id @default(cuid())
+  emailHash String
+  ipHash    String?
+  createdAt DateTime @default(now())
+
+  @@index([emailHash, createdAt])
+  @@index([ipHash, createdAt])
+  @@map("login_attempts")
+}
+
+model ImportBatch {
+  id             String       @id @default(cuid())
+  fileName       String
+  importedById   String
+  totalRows      Int          @default(0)
+  successfulRows Int          @default(0)
+  failedRows     Int          @default(0)
+  status         ImportStatus @default(VALIDATING)
+  createdAt      DateTime     @default(now())
+  completedAt    DateTime?
+  importedBy     User         @relation(fields: [importedById], references: [id], onDelete: Restrict)
+  rows           ImportRow[]
+
+  @@index([importedById, createdAt])
+  @@index([status, createdAt])
+  @@map("import_batches")
+}
+
+model ImportRow {
+  id         String      @id @default(cuid())
+  batchId    String
+  rowNumber  Int
+  externalId String?
+  payload    Json
+  errors     Json        @default("[]")
+  importedAt DateTime?
+  batch      ImportBatch @relation(fields: [batchId], references: [id], onDelete: Cascade)
+
+  @@unique([batchId, rowNumber])
+  @@index([externalId])
+  @@map("import_rows")
+}
