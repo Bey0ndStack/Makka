@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>تسجيل الدخول | مكة</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --green:#0B4A37; --green-2:#0E5A44; --green-btn:#0B5A44; --gold:#D9A441;
+    --bg:#F6F6F3; --card:#FFFFFF; --ink:#13201B; --muted:#6B7C76; --line:#E3E8E5;
+    --input:#E8F0FE; --danger:#C62828; --danger-bg:#FDECEC; --ok:#1B7F5A; --ok-bg:#E6F4EE;
+    --font:"IBM Plex Sans Arabic","Segoe UI",Tahoma,Arial,sans-serif;
+  }
+  *{box-sizing:border-box}
+  html,body{height:100%;margin:0}
+  body{font-family:var(--font);background:var(--bg);color:var(--ink);font-size:15px}
+  .page{min-height:100%;display:grid;grid-template-columns:1fr 1fr}
+  /* Brand panel (right side in RTL) */
+  .brand{background:var(--green);color:#fff;position:relative;overflow:hidden;padding:56px 64px;
+    display:flex;flex-direction:column;justify-content:space-between}
+  .brand::before{content:"";position:absolute;inset:0;opacity:.13;
+    background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='72' height='72' viewBox='0 0 72 72'%3E%3Cg fill='none' stroke='%23ffffff' stroke-width='1'%3E%3Crect x='22' y='22' width='28' height='28'/%3E%3Crect x='22' y='22' width='28' height='28' transform='rotate(45 36 36)'/%3E%3Cpath d='M0 36h6M66 36h6M36 0v6M36 66v6'/%3E%3C/g%3E%3C/svg%3E");}
+  .brand > *{position:relative}
+  .brand-logo{display:flex;align-items:center;gap:12px;justify-content:flex-start}
+  .brand-logo .name{font-size:28px;font-weight:700;line-height:1}
+  .brand-logo .latin{display:block;font-size:9px;letter-spacing:.25em;color:var(--gold);font-weight:600;margin-top:4px}
+  .brand-mid{max-width:420px}
+  .eyebrow{font-size:14px;opacity:.85;margin-bottom:22px}
+  .brand h2{font-size:38px;line-height:1.55;margin:0 0 26px;font-weight:700}
+  .brand hr{width:72px;border:0;border-top:1px solid rgba(255,255,255,.35);margin:0 0 22px}
+  .brand p{margin:0;opacity:.9;font-size:15px}
+  .brand-foot{font-size:14px;opacity:.85;direction:ltr;text-align:left}
+
+  /* Login side */
+  .side{display:flex;align-items:center;justify-content:center;padding:32px 16px}
+  .card{width:100%;max-width:520px;background:var(--card);border:1px solid var(--line);border-radius:22px;
+    padding:28px 44px 36px;box-shadow:0 1px 2px rgba(16,40,30,.04);position:relative}
+  .lang{position:absolute;top:24px;left:24px;display:inline-flex;align-items:center;gap:8px;background:#fff;
+    border:1px solid var(--line);border-radius:10px;padding:8px 14px;font:inherit;font-size:15px;cursor:pointer;color:var(--ink)}
+  [dir="ltr"] .lang{left:auto;right:24px}
+  .lang:hover{background:#F3F6F4}
+  .logo-tile{width:72px;height:72px;border-radius:16px;background:#EEF4F1;display:grid;place-items:center;margin:28px auto 18px}
+  .crumb{text-align:center;color:var(--green-2);font-size:15px;margin-bottom:8px}
+  .crumb span{color:#9AA8A3;margin:0 6px}
+  h1{text-align:center;font-size:26px;margin:0 0 8px;font-weight:700}
+  .sub{text-align:center;color:var(--muted);margin:0 0 30px;font-size:14px}
+  .field{margin-bottom:18px}
+  label{display:block;font-size:14px;margin-bottom:8px;font-weight:500}
+  .control{position:relative}
+  input{width:100%;height:56px;border-radius:10px;border:1px solid transparent;background:var(--input);
+    padding:0 16px;font:inherit;font-size:16px;color:var(--ink);outline:none;transition:border-color .15s, box-shadow .15s}
+  input:focus{border-color:var(--green-2);box-shadow:0 0 0 3px rgba(14,90,68,.15)}
+  input.invalid{border-color:var(--danger);background:#FFF6F6}
+  input[type="email"], #password{direction:ltr;text-align:right}
+  [dir="ltr"] input[type="email"], [dir="ltr"] #password{text-align:left}
+  .toggle-pass{position:absolute;top:50%;transform:translateY(-50%);left:12px;background:none;border:0;cursor:pointer;
+    color:var(--muted);padding:6px;border-radius:6px;display:grid;place-items:center}
+  [dir="ltr"] .toggle-pass{left:auto;right:12px}
+  .toggle-pass:focus-visible{outline:2px solid var(--green-2)}
+  #password{padding-left:48px}
+  [dir="ltr"] #password{padding-left:16px;padding-right:48px}
+  .err{color:var(--danger);font-size:13px;margin-top:6px;min-height:0}
+  .alert{display:none;align-items:flex-start;gap:10px;border-radius:10px;padding:12px 14px;font-size:14px;margin-bottom:18px}
+  .alert.show{display:flex}
+  .alert.error{background:var(--danger-bg);color:var(--danger)}
+  .alert.success{background:var(--ok-bg);color:var(--ok)}
+  .btn{width:100%;height:60px;border:0;border-radius:10px;background:var(--green-btn);color:#fff;font:inherit;font-size:16px;
+    font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:10px;margin-top:6px}
+  .btn:hover{background:#09503C}
+  .btn:disabled{opacity:.7;cursor:not-allowed}
+  .btn:focus-visible{outline:3px solid var(--gold);outline-offset:2px}
+  [dir="ltr"] .btn .arrow{transform:scaleX(-1)}
+  .spinner{width:18px;height:18px;border:2px solid rgba(255,255,255,.4);border-top-color:#fff;border-radius:50%;animation:spin .8s linear infinite;display:none}
+  .btn.loading .spinner{display:block}.btn.loading .arrow{display:none}
+  @keyframes spin{to{transform:rotate(360deg)}}
+  .secure{display:flex;align-items:center;justify-content:center;gap:6px;color:#8A9893;font-size:13px;margin-top:22px}
+  .note{text-align:center;color:#8A9893;font-size:12.5px;margin-top:8px}
+  .welcome{display:none;text-align:center}
+  .welcome.show{display:block}
+  .welcome .check{width:64px;height:64px;border-radius:50%;background:var(--ok-bg);display:grid;place-items:center;margin:24px auto 16px}
+  .welcome h1{margin-bottom:6px}
+  .btn.ghost{background:#fff;color:var(--ink);border:1px solid var(--line);height:52px}
+  .btn.ghost:hover{background:#F3F6F4}
+  @media (max-width:900px){
+    .page{grid-template-columns:1fr}
+    .brand{display:none}
+    .card{padding:24px 20px 28px}
+  }
+  @media (prefers-reduced-motion:reduce){.spinner{animation:none}}
+</style>
+</head>
+<body>
+<div class="page">
+  <!-- Brand panel -->
+  <aside class="brand" aria-hidden="true">
+    <div class="brand-logo">
+      <svg width="52" height="52" viewBox="0 0 100 100">
+        <g transform="translate(50 50)">
+          <rect x="-30" y="-30" width="60" height="60" rx="4" fill="#fff"/>
+          <rect x="-30" y="-30" width="60" height="60" rx="4" fill="#fff" transform="rotate(45)"/>
+          <path d="M-12 6c0-10 9-16 18-14-3 3-3 7 0 10 2 2 5 2 8 1-2 6-8 9-14 9h-12z" fill="#0B4A37"/>
+        </g>
+      </svg>
+      <div><span class="name">مكة</span><span class="latin">MAKKAH</span></div>
+    </div>
+    <div class="brand-mid">
+      <div class="eyebrow" data-i18n="eyebrow">منصة العمليات المالية</div>
+      <h2 data-i18n-html="headline">وضوح في الحسابات،<br>وثقة في كل معاملة.</h2>
+      <hr>
+      <p data-i18n="tagline">منصة واحدة لإدارة التجار والفواتير والتحصيلات.</p>
+    </div>
+    <div class="brand-foot">Makkah · Financial operations</div>
+  </aside>
+  <!-- Login side -->
+  <main class="side">
+    <div class="card">
+      <button class="lang" id="langBtn" type="button" aria-label="Change language">
+        <span id="langLabel">English</span>
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m5 8 6 6"/><path d="m4 14 6-6 2-3"/><path d="M2 5h12"/><path d="M7 2h1"/><path d="m22 22-5-10-5 10"/><path d="M14 18h6"/></svg>
+      </button>
+
+      <div class="logo-tile" aria-hidden="true">
+        <svg width="46" height="46" viewBox="0 0 100 100">
+          <g transform="translate(50 50)">
+            <rect x="-30" y="-30" width="60" height="60" rx="4" fill="#0E6B4F"/>
+            <rect x="-30" y="-30" width="60" height="60" rx="4" fill="#0E6B4F" transform="rotate(45)"/>
+            <rect x="-23" y="-23" width="46" height="46" fill="none" stroke="#D9A441" stroke-width="2"/>
+            <rect x="-23" y="-23" width="46" height="46" fill="none" stroke="#D9A441" stroke-width="2" transform="rotate(45)"/>
+            <path d="M-12 6c0-10 9-16 18-14-3 3-3 7 0 10 2 2 5 2 8 1-2 6-8 9-14 9h-12z" fill="#fff"/>
+          </g>
+        </svg>
+      </div>
+
+      <!-- Login form -->
+      <section id="loginView">
+        <div class="crumb"><span data-i18n="brandAr">مكة</span><span>/</span><b style="font-weight:500">Makkah</b></div>
+        <h1 data-i18n="title">تسجيل الدخول إلى مكة</h1>
+        <p class="sub" data-i18n="subtitle">أدخل بيانات حسابك لمتابعة أعمالك</p>
+
+        <div class="alert error" id="alert" role="alert">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01"/></svg>
+          <span id="alertText"></span>
+        </div>
+
+        <form id="loginForm" novalidate>
+          <div class="field">
+            <label for="email" data-i18n="email">البريد الإلكتروني</label>
+            <div class="control">
+              <input id="email" type="email" autocomplete="username" placeholder="name@makkah.eg">
+            </div>
+            <div class="err" id="emailErr"></div>
+          </div>
+          <div class="field">
+            <label for="password" data-i18n="password">كلمة المرور</label>
+            <div class="control">
+              <input id="password" type="password" autocomplete="current-password" placeholder="••••••••••••">
+              <button class="toggle-pass" id="togglePass" type="button" aria-label="Show password">
+                <svg id="eye" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg>
+              </button>
+            </div>
+            <div class="err" id="passErr"></div>
+          </div>
+          <button class="btn" id="submitBtn" type="submit">
+            <span data-i18n="login">تسجيل الدخول</span>
+            <span class="spinner"></span>
+            <svg class="arrow" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+          </button>
+        </form>
+
+        <div class="secure">
+          <span data-i18n="secure">دخول آمن للمنصة</span>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="m9 12 2 2 4-4"/></svg>
+        </div>
+        <p class="note" data-i18n="noRegister">لا يوجد تسجيل حسابات جديدة. الحسابات يتم إنشاؤها من مدير النظام فقط.</p>
+      </section>
+
+      <!-- Success view -->
+      <section class="welcome" id="welcomeView" aria-live="polite">
+        <div class="check">
+          <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="#1B7F5A" stroke-width="2.5"><path d="M20 6 9 17l-5-5"/></svg>
+        </div>
+        <h1 id="welcomeTitle"></h1>
+        <p class="sub" id="welcomeSub"></p>
+        <button class="btn ghost" id="logoutBtn" type="button" data-i18n="logout">تسجيل الخروج</button>
+      </section>
+    </div>
+  </main>
+
+</div>
+
+<script>
+  // Demo accounts only — this static page checks them in the browser and sends nothing anywhere.
+  const USERS = [
+    { email: "owner@makkah.eg",    password: "Makkah@2026", name: { ar: "أحمد محمد", en: "Ahmed Mohamed" }, role: { ar: "المالك", en: "Owner" } },
+    { email: "mahmoud@gmail.com",  password: "Viewer@2026", name: { ar: "محمود",     en: "Mahmoud" },       role: { ar: "مشاهد", en: "Viewer" } }
+  ];
+  const MAX_ATTEMPTS = 5, LOCK_SECONDS = 30;
+
+  const T = {
+    ar: { brandAr:"مكة", title:"تسجيل الدخول إلى مكة", subtitle:"أدخل بيانات حسابك لمتابعة أعمالك", email:"البريد الإلكتروني",
+      password:"كلمة المرور", login:"تسجيل الدخول", secure:"دخول آمن للمنصة",
+      noRegister:"لا يوجد تسجيل حسابات جديدة. الحسابات يتم إنشاؤها من مدير النظام فقط.",
+      eyebrow:"منصة العمليات المالية", headline:"وضوح في الحسابات،<br>وثقة في كل معاملة.",
+      tagline:"منصة واحدة لإدارة التجار والفواتير والتحصيلات.", logout:"تسجيل الخروج", lang:"English",
+      reqEmail:"من فضلك أدخل البريد الإلكتروني.", badEmail:"صيغة البريد الإلكتروني غير صحيحة.",
+      reqPass:"من فضلك أدخل كلمة المرور.", noUser:"لا يوجد حساب بهذا البريد الإلكتروني. تواصل مع مدير النظام.",
+      wrongPass:"كلمة المرور غير صحيحة. المحاولات المتبقية: {n}",
+      locked:"تم إيقاف المحاولة مؤقتًا بسبب كثرة المحاولات الخاطئة. حاول بعد {s} ثانية.",
+      welcome:"أهلًا، {name}", welcomeSub:"تم تسجيل الدخول بنجاح بصلاحية: {role}", pageTitle:"تسجيل الدخول | مكة" },
+    en: { brandAr:"مكة", title:"Sign in to Makkah", subtitle:"Enter your account details to continue", email:"Email",
+      password:"Password", login:"Sign in", secure:"Secure access to the platform",
+      noRegister:"Registration is closed. Accounts are created by the system administrator only.",
+      eyebrow:"Financial operations platform", headline:"Clarity in your accounts,<br>trust in every transaction.",
+      tagline:"One platform to manage merchants, invoices and collections.", logout:"Sign out", lang:"العربية",
+      reqEmail:"Please enter your email.", badEmail:"This email address is not valid.",
+      reqPass:"Please enter your password.", noUser:"No account uses this email. Contact your system administrator.",
+      wrongPass:"Incorrect password. Attempts left: {n}",
+      locked:"Too many incorrect attempts. Try again in {s} seconds.",
+      welcome:"Welcome, {name}", welcomeSub:"Signed in successfully as: {role}", pageTitle:"Sign in | Makkah" }
+  };
+
+  let lang = "ar", attempts = 0, lockUntil = 0, lockTimer = null, currentUser = null;
+  const $ = id => document.getElementById(id);
+  const fmt = (s, v) => s.replace(/\{(\w+)\}/g, (_, k) => v[k]);
+
+  function applyLang(){
+    const t = T[lang];
+    document.documentElement.lang = lang;
+    document.documentElement.dir = lang === "ar" ? "rtl" : "ltr";
+    document.title = t.pageTitle;
+    document.querySelectorAll("[data-i18n]").forEach(el => el.textContent = t[el.dataset.i18n]);
+    document.querySelectorAll("[data-i18n-html]").forEach(el => el.innerHTML = t[el.dataset.i18nHtml]);
+    $("langLabel").textContent = t.lang;
+    $("emailErr").textContent = ""; $("passErr").textContent = "";
+    if ($("alert").classList.contains("show")) hideAlert();
+    if (currentUser) showWelcome(currentUser);
+  }
+
+  function showAlert(msg){ $("alertText").textContent = msg; $("alert").classList.add("show"); }
+  function hideAlert(){ $("alert").classList.remove("show"); }
+
+  function startLock(){
+    lockUntil = Date.now() + LOCK_SECONDS * 1000;
+    $("submitBtn").disabled = true;
+    const tick = () => {
+      const s = Math.ceil((lockUntil - Date.now()) / 1000);
+      if (s <= 0){ clearInterval(lockTimer); $("submitBtn").disabled = false; attempts = 0; hideAlert(); return; }
+      showAlert(fmt(T[lang].locked, { s }));
+    };
+    tick(); lockTimer = setInterval(tick, 1000);
+  }
+
+  function showWelcome(u){
+    $("welcomeTitle").textContent = fmt(T[lang].welcome, { name: u.name[lang] });
+    $("welcomeSub").textContent = fmt(T[lang].welcomeSub, { role: u.role[lang] });
+    $("loginView").hidden = true;
+    $("welcomeView").classList.add("show");
+  }
+
+  $("loginForm").addEventListener("submit", e => {
+    e.preventDefault();
+    if (Date.now() < lockUntil) return;
+    const t = T[lang];
+    const email = $("email").value.trim().toLowerCase();
+    const pass = $("password").value;
+    let ok = true;
+    $("email").classList.remove("invalid"); $("password").classList.remove("invalid");
+    $("emailErr").textContent = ""; $("passErr").textContent = ""; hideAlert();
+
+    if (!email){ $("emailErr").textContent = t.reqEmail; $("email").classList.add("invalid"); ok = false; }
+    else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)){ $("emailErr").textContent = t.badEmail; $("email").classList.add("invalid"); ok = false; }
+    if (!pass){ $("passErr").textContent = t.reqPass; $("password").classList.add("invalid"); ok = false; }
+    if (!ok) return;
+
+    const btn = $("submitBtn");
+    btn.classList.add("loading"); btn.disabled = true;
+    setTimeout(() => {
+      btn.classList.remove("loading"); btn.disabled = false;
+      const user = USERS.find(u => u.email === email);
+      if (!user){ showAlert(t.noUser); $("email").classList.add("invalid"); return; }
+      if (user.password !== pass){
+        attempts++;
+        $("password").classList.add("invalid"); $("password").value = ""; $("password").focus();
+        if (attempts >= MAX_ATTEMPTS) startLock();
+        else showAlert(fmt(t.wrongPass, { n: MAX_ATTEMPTS - attempts }));
+        return;
+      }
+      attempts = 0; currentUser = user; showWelcome(user);
+    }, 700);
+  });
+
+  $("togglePass").addEventListener("click", () => {
+    const p = $("password"); const show = p.type === "password";
+    p.type = show ? "text" : "password";
+    $("eye").innerHTML = show
+      ? '<path d="M17.94 17.94A10.07 10.07 0 0 1 12 19c-6.5 0-10-7-10-7a18.5 18.5 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c6.5 0 10 7 10 7a18.5 18.5 0 0 1-2.16 3.19M1 1l22 22"/>'
+      : '<path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/>';
+  });
+
+  $("logoutBtn").addEventListener("click", () => {
+    currentUser = null;
+    $("welcomeView").classList.remove("show"); $("loginView").hidden = false;
+    $("loginForm").reset(); $("email").focus();
+  });
+
+  $("langBtn").addEventListener("click", () => { lang = lang === "ar" ? "en" : "ar"; applyLang(); });
+  ["email","password"].forEach(id => $(id).addEventListener("input", () => {
+    $(id).classList.remove("invalid"); $(id === "email" ? "emailErr" : "passErr").textContent = "";
+  }));
+</script>
+</body>
+</html>
