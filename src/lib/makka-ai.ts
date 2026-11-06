@@ -403,15 +403,19 @@ export function getMakkaAIProviderConfig() {
   const apiKey = process.env.MAKKA_AI_API_KEY?.trim();
   if (!apiKey) return null;
   const model = process.env.MAKKA_AI_MODEL?.trim();
+  // Optional override for any OpenAI-compatible endpoint (e.g. a gateway or self-hosted model).
+  const baseUrl = process.env.MAKKA_AI_BASE_URL?.trim().replace(/\/+$/, "");
   return {
     provider,
     apiKey,
     model: model || (provider === "grok" ? "grok-3-mini" : provider === "groq" ? "openai/gpt-oss-120b" : "gpt-4o-mini"),
-    url: provider === "grok"
-      ? "https://api.x.ai/v1/chat/completions"
-      : provider === "groq"
-        ? "https://api.groq.com/openai/v1/chat/completions"
-        : "https://api.openai.com/v1/chat/completions"
+    url: baseUrl
+      ? `${baseUrl}/chat/completions`
+      : provider === "grok"
+        ? "https://api.x.ai/v1/chat/completions"
+        : provider === "groq"
+          ? "https://api.groq.com/openai/v1/chat/completions"
+          : "https://api.openai.com/v1/chat/completions"
   } as const;
 }
 

@@ -1,4 +1,5 @@
 import Link from "next/link";
+import Form from "next/form";
 import { Plus, Search, Store } from "lucide-react";
 import { BrandSectionBadge } from "@/components/brand-section-badge";
 import { getMerchantDirectory } from "@/features/merchants/merchant.service";
@@ -40,13 +41,13 @@ export default async function MerchantsPage({
         {mayCreate && <Link href={`/${locale}/merchants/new`} className="inline-flex h-10 items-center gap-2 rounded-lg bg-brand-700 px-4 text-sm font-semibold text-white hover:bg-brand-800"><Plus size={16} aria-hidden="true" />{isArabic ? "إضافة تاجر" : "Add merchant"}</Link>}
       </div>
 
-      <form className="flex flex-wrap items-center gap-2 rounded-xl border border-slate-200 bg-white p-3 shadow-panel">
+      <Form action={`/${locale}/merchants`} className="flex flex-wrap items-center gap-2 rounded-xl border border-slate-200 bg-white p-3 shadow-panel">
         <label className="flex min-w-[220px] flex-1 items-center gap-2 rounded-lg border border-slate-200 px-3">
           <Search size={16} className="text-slate-400" aria-hidden="true" />
           <input name="q" defaultValue={query.q} placeholder={isArabic ? "ابحث بالاسم أو الرمز أو الجوال" : "Search name, code, or phone"} className="h-10 w-full bg-transparent text-sm outline-none placeholder:text-slate-400" />
         </label>
         <button className="h-10 rounded-lg border border-slate-200 px-4 text-sm font-medium text-slate-600 hover:bg-sand">{isArabic ? "بحث" : "Search"}</button>
-      </form>
+      </Form>
 
       <section className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-panel">
         <div className="flex items-center justify-between border-b border-slate-100 px-5 py-4">

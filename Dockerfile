@@ -11,7 +11,7 @@ ENV NODE_ENV=development
 COPY . .
 RUN DATABASE_URL=postgresql://makkah:build-only@localhost:5432/makkah?schema=public npx prisma generate
 EXPOSE 3000
-CMD ["npm", "run", "dev", "--", "--hostname", "0.0.0.0"]
+CMD ["npm", "run", "dev:webpack", "--", "--hostname", "0.0.0.0"]
 
 FROM dependencies AS builder
 ENV NEXT_TELEMETRY_DISABLED=1

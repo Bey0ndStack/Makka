@@ -1,3 +1,4 @@
+import Form from "next/form";
 import { formatCurrency } from "@/lib/format";
 import { getMerchantReport, parseReportFilters } from "@/features/reports/report.service";
 import { prisma } from "@/lib/prisma";
@@ -36,13 +37,13 @@ export async function ReportsPanel({
 
   return (
     <div className="space-y-6">
-      <form className="grid gap-3 rounded-xl border border-slate-200 bg-white p-4 shadow-panel sm:grid-cols-2 xl:grid-cols-[1fr_1fr_1.4fr_auto_auto]">
+      <Form action={`/${locale}/reports`} className="grid gap-3 rounded-xl border border-slate-200 bg-white p-4 shadow-panel sm:grid-cols-2 xl:grid-cols-[1fr_1fr_1.4fr_auto_auto]">
         <label className="space-y-1 text-xs text-slate-500"><span>{isArabic ? "من تاريخ" : "From date"}</span><input type="date" name="from" defaultValue={filters.from} className="h-10 w-full rounded-lg border border-slate-200 px-2 text-sm text-slate-700" /></label>
         <label className="space-y-1 text-xs text-slate-500"><span>{isArabic ? "إلى تاريخ" : "To date"}</span><input type="date" name="to" defaultValue={filters.to} className="h-10 w-full rounded-lg border border-slate-200 px-2 text-sm text-slate-700" /></label>
         <label className="space-y-1 text-xs text-slate-500"><span>{isArabic ? "التاجر" : "Merchant"}</span><select name="merchantId" defaultValue={filters.merchantId} className="h-10 w-full rounded-lg border border-slate-200 bg-white px-2 text-sm text-slate-700"><option value="">{isArabic ? "كل التجار" : "All merchants"}</option>{merchants.map((merchant) => <option key={merchant.id} value={merchant.id}>{merchant.name} · {merchant.merchantCode}</option>)}</select></label>
         <button className="mt-auto h-10 rounded-lg bg-brand-700 px-4 text-sm font-semibold text-white hover:bg-brand-800">{isArabic ? "تطبيق الفلاتر" : "Apply filters"}</button>
         {canExport && <a href={`/api/reports?${exportQuery.toString()}`} className="mt-auto inline-flex h-10 items-center justify-center rounded-lg border border-slate-200 px-4 text-sm font-semibold text-brand-700 hover:bg-brand-50">{isArabic ? "تصدير CSV" : "Export CSV"}</a>}
-      </form>
+      </Form>
       {!parsed.success && <p role="alert" className="rounded-lg bg-rose-50 px-4 py-3 text-sm text-rose-700">{isArabic ? "نطاق التاريخ غير صالح؛ تأكد من أن تاريخ البداية يسبق تاريخ النهاية." : "Invalid date range; ensure the start date is on or before the end date."}</p>}
       {report && <>
         <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">{metrics.map((metric) => <article key={metric.label} className="rounded-xl border border-slate-200 bg-white p-5 shadow-panel"><p className="text-xs text-slate-500">{metric.label}</p><p className="mt-3 text-xl font-bold text-slate-900" dir="ltr">{metric.value}</p></article>)}</section>

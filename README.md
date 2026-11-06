@@ -68,6 +68,19 @@ Compose starts PostgreSQL, waits for its health check, applies the committed Pri
 
 To enable Makka AI, set `MAKKA_AI_PROVIDER` to `openai`, `groq`, or `grok`, add that provider's secret API key to `MAKKA_AI_API_KEY`, and optionally set `MAKKA_AI_MODEL`. For Groq, use its model ID (for example, `openai/gpt-oss-120b`). Keep the key on the server and never expose it with a `NEXT_PUBLIC_` variable.
 
+### Faster local development
+
+Compose runs Next.js with webpack and file polling, because file-change events do not reach the container through a Windows bind mount. For the fastest page compiles, keep only PostgreSQL in Docker and run Next.js natively with Turbopack:
+
+```powershell
+docker compose up -d db
+$env:DATABASE_URL = "postgresql://makkah:<password>@localhost:5432/makkah?schema=public"
+npm run db:deploy
+npm run dev          # Turbopack
+```
+
+`npm run dev:webpack` starts the previous webpack dev server. Development mode compiles each route on first visit and disables link prefetching; measure page speed with `npm run build && npm start`.
+
 ### Useful commands
 
 ```powershell
@@ -118,6 +131,20 @@ docker compose down
       <sub>Server-side search with actor, action, entity, and date filters, plus before/after details.</sub>
     </td>
   </tr>
+  <tr>
+    <td align="center">
+      <b>Cheques</b><br>
+      <sub>Cheque register (company, amount, date, cheque number, bank) with pending / cleared / bounced status and audited changes.</sub>
+    </td>
+    <td align="center">
+      <b>Invoice PDF</b><br>
+      <sub>A4 print view matching the company's e-invoice layout: seller and buyer blocks, item codes and units, 14% VAT, QR summary, and internal number.</sub>
+    </td>
+    <td align="center">
+      <b>VAT</b><br>
+      <sub>Optional 14% VAT per invoice; the VAT amount is part of the invoice total and the merchant balance.</sub>
+    </td>
+  </tr>
 </table>
 
 ### Current foundation
@@ -130,9 +157,11 @@ docker compose down
 - **Seed data:** An owner account, the Owner/Admin/Collector/Viewer roles, sample merchants and financial activity.
 - **Dashboard:** Live aggregate balances, collections, top debtors, and recent audit events from PostgreSQL.
 - **Administration:** User and custom-role management enforces granular permissions and protects the final active owner account.
-- **Makka AI:** Optional read-only workspace assistant supporting OpenAI, Groq, or xAI Grok. It retrieves only the data relevant to a question and allowed by the signed-in user's database permissions; configure `MAKKA_AI_PROVIDER`, `MAKKA_AI_API_KEY`, and `MAKKA_AI_MODEL`. Relevant retrieved data is sent to the configured provider for response generation. The assistant cannot perform platform actions.
+- **Makka AI:** Optional read-only workspace assistant supporting OpenAI, Groq, xAI Grok, or any OpenAI-compatible endpoint (`MAKKA_AI_BASE_URL`). It knows every page and workflow and answers from live data through tool calls (merchants, invoices, collections and period totals, debts and aging, cheques, reports, audit trail, users, roles, imports). Each tool is offered to the model only when the signed-in user has the matching permission and is re-checked on the server before it runs, so the model never sees data the user could not open. Answers stream in, keep the conversation context, and render as formatted Markdown (headings, lists, tables, links to records). If a model does not support tool calling, the assistant falls back to permission-filtered retrieval. Configure `MAKKA_AI_PROVIDER`, `MAKKA_AI_API_KEY`, and `MAKKA_AI_MODEL`; use a model with tool-calling support (for example `gpt-4o-mini`/`gpt-4.1-mini`, Groq `openai/gpt-oss-120b`, or `grok-3-mini`). Relevant retrieved data is sent to the configured provider for response generation. The assistant cannot perform platform actions.
 - **Security:** Login failures, successful logins, and logouts are written to the audit trail; a persistent 15-minute account/IP attempt limit protects credential checks. Security headers are set centrally.
 - **Operations:** `/api/health` checks database connectivity.
+- **Invoices as PDF:** open an invoice and choose **تحميل PDF**. The print view (`/ar/print/invoices/<id>`) opens the browser print dialog; choose **Save as PDF**. The suggested file name is `مكة <internal number>.pdf`. Seller details printed on every invoice live in [`src/lib/company.ts`](src/lib/company.ts). Internal numbers continue after 1729.
+- **Performance:** visited pages stay in the client router cache for 30 seconds (`experimental.staleTimes`), filters and pagination navigate client-side, search columns use PostgreSQL trigram (`pg_trgm`) indexes, and download links are plain anchors so they are never prefetched.
 
 ---
 

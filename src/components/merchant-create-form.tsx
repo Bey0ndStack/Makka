@@ -11,14 +11,15 @@ export function MerchantCreateForm({ locale }: { locale: "ar" | "en" }) {
   const [state, action, pending] = useActionState(createMerchantAction, initialState);
   const isArabic = locale === "ar";
   const text = isArabic
-    ? { name: "اسم التاجر", phone: "رقم الجوال", alternatePhone: "رقم بديل (اختياري)", city: "المدينة", region: "الحي / المنطقة", address: "العنوان", notes: "ملاحظات", cancel: "إلغاء", save: "حفظ التاجر", error: "تحقق من البيانات المدخلة ثم حاول مرة أخرى.", saving: "جارٍ الحفظ..." }
-    : { name: "Merchant name", phone: "Phone number", alternatePhone: "Alternate phone (optional)", city: "City", region: "District / region", address: "Address", notes: "Notes", cancel: "Cancel", save: "Save merchant", error: "Check the entered details and try again.", saving: "Saving..." };
+    ? { name: "اسم التاجر", phone: "رقم الجوال", alternatePhone: "رقم بديل (اختياري)", city: "المدينة", region: "الحي / المنطقة", address: "العنوان", taxNumber: "رقم التسجيل الضريبي (اختياري)", notes: "ملاحظات", cancel: "إلغاء", save: "حفظ التاجر", error: "تحقق من البيانات المدخلة ثم حاول مرة أخرى.", saving: "جارٍ الحفظ..." }
+    : { name: "Merchant name", phone: "Phone number", alternatePhone: "Alternate phone (optional)", city: "City", region: "District / region", address: "Address", taxNumber: "Tax registration number (optional)", notes: "Notes", cancel: "Cancel", save: "Save merchant", error: "Check the entered details and try again.", saving: "Saving..." };
   const fields = [
     { name: "name", label: text.name, required: true },
     { name: "phone", label: text.phone, required: true },
     { name: "alternatePhone", label: text.alternatePhone },
     { name: "city", label: text.city },
     { name: "region", label: text.region },
+    { name: "taxNumber", label: text.taxNumber },
     { name: "address", label: text.address, wide: true }
   ] as const;
 
@@ -33,7 +34,7 @@ export function MerchantCreateForm({ locale }: { locale: "ar" | "en" }) {
           return (
             <label key={field.name} className={`block space-y-2 text-sm font-medium text-slate-700 ${wide ? "sm:col-span-2" : ""}`}>
               <span>{field.label}{required ? <span className="ms-1 text-red-600">*</span> : null}</span>
-              <input name={field.name} required={required} maxLength={field.name === "name" ? 150 : field.name === "address" ? 240 : 100} className="h-11 w-full rounded-lg border border-slate-200 bg-white px-3 outline-none transition focus:border-brand-500 focus:ring-4 focus:ring-brand-100" />
+              <input name={field.name} required={required} maxLength={field.name === "name" ? 150 : field.name === "address" ? 240 : 100} dir={field.name === "taxNumber" ? "ltr" : undefined} className="h-11 w-full rounded-lg border border-slate-200 bg-white px-3 outline-none transition focus:border-brand-500 focus:ring-4 focus:ring-brand-100" />
               {fieldError && <span role="alert" className="block text-xs font-normal text-red-600">{fieldError}</span>}
             </label>
           );

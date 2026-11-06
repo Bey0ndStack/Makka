@@ -1,4 +1,5 @@
 import Link from "next/link";
+import Form from "next/form";
 import { Search } from "lucide-react";
 import { BrandSectionBadge } from "@/components/brand-section-badge";
 import { getDebtDirectory, type DebtAging } from "@/features/finance/debt.service";
@@ -44,14 +45,14 @@ export default async function DebtsPage({
         <p className="mt-1.5 text-sm text-slate-500">{isArabic ? "أرصدة محسوبة من الفواتير المؤكدة والتحصيلات المخصصة" : "Balances derived from confirmed invoices and allocated collections"}</p>
       </div>
 
-      <form className="grid gap-3 rounded-xl border border-slate-200 bg-white p-3 shadow-panel sm:grid-cols-[1fr_260px_auto]">
+      <Form action={`/${locale}/debts`} className="grid gap-3 rounded-xl border border-slate-200 bg-white p-3 shadow-panel sm:grid-cols-[1fr_260px_auto]">
         <label className="flex items-center gap-2 rounded-lg border border-slate-200 px-3">
           <Search size={16} className="text-slate-400" aria-hidden="true" />
           <input name="q" defaultValue={query.q} maxLength={100} placeholder={isArabic ? "ابحث عن تاجر" : "Search merchants"} className="h-10 w-full bg-transparent text-sm outline-none" />
         </label>
         <label><span className="sr-only">{isArabic ? "عمر الدين" : "Debt age"}</span><select name="aging" defaultValue={aging} className="h-11 w-full rounded-lg border border-slate-200 bg-white px-3 text-sm text-slate-600">{agingOptions.map((option) => <option key={option} value={option}>{agingLabels[option]}</option>)}</select></label>
         <button className="h-11 rounded-lg bg-brand-700 px-4 text-sm font-semibold text-white hover:bg-brand-800">{isArabic ? "تطبيق" : "Apply"}</button>
-      </form>
+      </Form>
 
       <section className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-panel">
         <div className="flex items-center justify-between border-b border-slate-100 px-5 py-4"><h2 className="text-sm font-bold text-slate-800">{agingLabels[aging]}</h2><span className="text-xs text-slate-400">{data.count} {isArabic ? "تاجر" : "merchants"}</span></div>

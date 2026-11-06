@@ -76,6 +76,7 @@ export default async function FoundationModulePage({
       { key: "dashboardDone", status: "done", href: "dashboard" },
       { key: "invoicesDone", status: "done", href: "invoices" },
       { key: "debtsDone", status: "done", href: "debts" },
+      { key: "chequesDone", status: "done", href: "cheques" },
       { key: "paymentsDone", status: "done", href: "payments" },
       { key: "auditDone", status: "done", href: "audit" },
       { key: "usersDone", status: "done", href: "users" },

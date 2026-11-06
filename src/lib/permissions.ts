@@ -37,9 +37,13 @@ export async function requirePermission(permission: string, locale = "ar") {
   const session = await getWorkspaceSession();
   if (!session?.user?.id) redirect(`/${locale}/login`);
 
-  const user = await getWorkspaceUser(session.user.id);
+  // One round trip instead of two: both lookups are cached per request.
+  const [user, permissions] = await Promise.all([
+    getWorkspaceUser(session.user.id),
+    getUserPermissionKeys(session.user.id)
+  ]);
   if (!user || user.status !== "ACTIVE") redirect(`/${locale}/login`);
 
-  if (!(await userHasPermission(session.user.id, permission))) redirect(`/${locale}/forbidden`);
+  if (!permissions.has(permission)) redirect(`/${locale}/forbidden`);
   return session.user;
 }

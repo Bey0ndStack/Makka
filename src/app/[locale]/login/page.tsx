@@ -29,7 +29,7 @@ export default async function LoginPage({ params }: { params: Promise<{ locale: 
       <div className="flex min-h-screen items-center justify-center px-5 py-10 sm:px-8">
       <section className="relative w-full max-w-[440px] rounded-2xl border border-slate-200/80 bg-white p-7 shadow-panel sm:p-10">
         <div className="absolute end-5 top-5">
-          <LanguageSwitch locale={locale} pathname={`/${locale}/login`} />
+          <LanguageSwitch locale={locale} />
         </div>
         <div className="mb-8 flex justify-center pt-12 lg:hidden">
           <BrandMark size={54} />

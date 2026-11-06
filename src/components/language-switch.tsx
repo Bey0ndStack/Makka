@@ -1,8 +1,12 @@
+"use client";
+
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { Languages } from "lucide-react";
 import { translate, type Locale } from "@/lib/i18n";
 
-export function LanguageSwitch({ locale, pathname }: { locale: Locale; pathname: string }) {
+export function LanguageSwitch({ locale }: { locale: Locale }) {
+  const pathname = usePathname();
   const nextLocale = locale === "ar" ? "en" : "ar";
   const href = pathname.replace(/^\/(ar|en)(?=\/|$)/, `/${nextLocale}`);
   return (

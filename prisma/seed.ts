@@ -18,6 +18,9 @@ const permissionDescriptions: Record<string, string> = {
   "payment.create": "Create payments",
   "payment.reverse": "Reverse payments",
   "debt.read": "View outstanding balances",
+  "cheque.read": "View cheques",
+  "cheque.create": "Record cheques",
+  "cheque.update": "Update cheque status",
   "report.read": "View reports",
   "import.execute": "استيراد ملفات Excel",
   "export.execute": "تصدير البيانات",
@@ -38,12 +41,12 @@ const roleDefinitions: Record<string, { name: string; description: string; permi
   COLLECTOR: {
     name: "محصل",
     description: "الاطلاع على التجار والديون وتسجيل التحصيلات",
-    permissions: ["dashboard.read", "merchant.read", "invoice.read", "payment.read", "payment.create", "debt.read", "roadmap.read"]
+    permissions: ["dashboard.read", "merchant.read", "invoice.read", "payment.read", "payment.create", "debt.read", "cheque.read", "cheque.create", "roadmap.read"]
   },
   VIEWER: {
     name: "مشاهد",
     description: "اطلاع للقراءة فقط",
-    permissions: ["dashboard.read", "merchant.read", "invoice.read", "payment.read", "debt.read", "report.read", "roadmap.read"]
+    permissions: ["dashboard.read", "merchant.read", "invoice.read", "payment.read", "debt.read", "cheque.read", "report.read", "roadmap.read"]
   }
 };
 
@@ -218,6 +221,26 @@ async function main() {
         }
       });
     }
+  }
+
+  const chequeFixtures = [
+    { chequeNumber: "10023451", companyName: "مؤسسة النيل للتوريدات", bankName: "البنك الأهلي المصري", amount: "45000.00", daysAhead: 10, status: "PENDING" as const },
+    { chequeNumber: "55820017", companyName: "أسواق الإسكندرية", bankName: "بنك مصر", amount: "28750.00", daysAhead: -5, status: "CLEARED" as const },
+    { chequeNumber: "30091882", companyName: "شركة الجيزة للتجارة", bankName: "البنك التجاري الدولي (CIB)", amount: "12400.00", daysAhead: 25, status: "PENDING" as const }
+  ];
+  for (const fixture of chequeFixtures) {
+    if (await prisma.cheque.findFirst({ where: { chequeNumber: fixture.chequeNumber, bankName: fixture.bankName } })) continue;
+    await prisma.cheque.create({
+      data: {
+        chequeNumber: fixture.chequeNumber,
+        companyName: fixture.companyName,
+        bankName: fixture.bankName,
+        amount: new Prisma.Decimal(fixture.amount),
+        chequeDate: new Date(Date.now() + fixture.daysAhead * 86_400_000),
+        status: fixture.status,
+        createdById: owner.id
+      }
+    });
   }
 
   if ((await prisma.auditLog.count()) === 0) {

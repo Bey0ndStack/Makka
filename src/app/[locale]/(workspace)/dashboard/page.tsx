@@ -49,13 +49,14 @@ export default async function DashboardPage({ params }: { params: Promise<{ loca
         <div className="flex flex-wrap items-center gap-3">
           <p className="text-xs text-slate-400">{t("amountsInPounds")}</p>
           {canExport && (
-            <Link
+            <a
               href={`/api/dashboard/export?locale=${locale}`}
+              download
               className="inline-flex h-10 items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 text-xs font-semibold text-brand-700 transition hover:border-brand-200 hover:bg-brand-50"
             >
               <Download size={15} aria-hidden="true" />
               {isArabic ? "تصدير Excel (CSV)" : "Export Excel (CSV)"}
-            </Link>
+            </a>
           )}
         </div>
       </div>

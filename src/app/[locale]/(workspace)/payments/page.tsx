@@ -1,4 +1,6 @@
 import { Suspense } from "react";
+import Link from "next/link";
+import Form from "next/form";
 import { Prisma } from "@prisma/client";
 import { Search } from "lucide-react";
 import { BrandSectionBadge } from "@/components/brand-section-badge";
@@ -77,11 +79,11 @@ export default async function PaymentsPage({
           <PaymentCreatePanel locale={locale} actorId={actor.id} />
         </Suspense>
       )}
-      <form className="grid gap-3 rounded-xl border border-slate-200 bg-white p-3 shadow-panel sm:grid-cols-[1fr_220px_auto]">
+      <Form action={`/${locale}/payments`} className="grid gap-3 rounded-xl border border-slate-200 bg-white p-3 shadow-panel sm:grid-cols-[1fr_220px_auto]">
         <label className="flex items-center gap-2 rounded-lg border border-slate-200 px-3"><Search size={16} className="text-slate-400" aria-hidden="true" /><input name="q" defaultValue={query.q} maxLength={100} placeholder={isArabic ? "ابحث برقم الإيصال أو التاجر" : "Search receipt or merchant"} className="h-10 w-full bg-transparent text-sm outline-none" /></label>
         <label><span className="sr-only">{isArabic ? "الحالة" : "Status"}</span><select name="status" defaultValue={status ?? ""} className="h-11 w-full rounded-lg border border-slate-200 bg-white px-3 text-sm text-slate-600"><option value="">{isArabic ? "كل الحالات" : "All statuses"}</option><option value="COMPLETED">{isArabic ? "مكتملة" : "Completed"}</option><option value="REVERSED">{isArabic ? "معكوسة" : "Reversed"}</option></select></label>
         <button className="h-11 rounded-lg bg-brand-700 px-4 text-sm font-semibold text-white hover:bg-brand-800">{isArabic ? "تطبيق" : "Apply"}</button>
-      </form>
+      </Form>
       <section className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-panel">
         <div className="flex items-center justify-between border-b border-slate-100 px-5 py-4"><h2 className="text-sm font-bold text-slate-800">{isArabic ? "سجل التحصيلات" : "Collection register"}</h2><span className="text-xs text-slate-400">{count} {isArabic ? "عملية" : "payments"}</span></div>
         <div className="overflow-x-auto">
@@ -92,7 +94,7 @@ export default async function PaymentsPage({
                 const allocated = payment.allocations.reduce((sum, item) => sum.plus(item.amount), new Prisma.Decimal(0));
                 return <tr key={payment.id} className="hover:bg-sand/70">
                   <td className="px-5 py-3.5 font-semibold text-slate-800">{payment.reference ?? payment.id.slice(0, 10)}{payment.status === "REVERSED" && payment.reversalReason ? <span className="mt-1 block max-w-48 truncate text-[10px] font-normal text-rose-600">{payment.reversalReason}</span> : null}</td>
-                  <td className="px-5 py-3.5"><a href={`/${locale}/merchants/${payment.merchant.id}`} className="text-slate-700 hover:text-brand-700">{payment.merchant.name}<span className="mt-1 block text-[11px] text-slate-400">{payment.merchant.merchantCode}</span></a></td>
+                  <td className="px-5 py-3.5"><Link href={`/${locale}/merchants/${payment.merchant.id}`} className="text-slate-700 hover:text-brand-700">{payment.merchant.name}<span className="mt-1 block text-[11px] text-slate-400">{payment.merchant.merchantCode}</span></Link></td>
                   <td className="px-5 py-3.5 text-slate-500">{formatDate(payment.paymentDate, locale)}<span className="mt-1 block text-[10px] text-slate-400">{payment.createdBy?.name ?? "—"}</span></td>
                   <td className="px-5 py-3.5 text-slate-600">{methods[payment.paymentMethod]}</td>
                   <td className="px-5 py-3.5 text-right font-semibold text-slate-800" dir="ltr">{formatCurrency(payment.amount.toString(), locale)}</td>
@@ -105,7 +107,7 @@ export default async function PaymentsPage({
             </tbody>
           </table>
         </div>
-        <div className="flex items-center justify-between border-t border-slate-100 px-5 py-3 text-xs text-slate-500"><span>{isArabic ? `صفحة ${page} من ${pageCount}` : `Page ${page} of ${pageCount}`}</span><div className="flex gap-2">{page > 1 && <a href={`?q=${encodeURIComponent(search)}&status=${status ?? ""}&page=${page - 1}`} className="rounded-md border border-slate-200 px-3 py-1.5 hover:bg-sand">{isArabic ? "السابق" : "Previous"}</a>}{page < pageCount && <a href={`?q=${encodeURIComponent(search)}&status=${status ?? ""}&page=${page + 1}`} className="rounded-md border border-slate-200 px-3 py-1.5 hover:bg-sand">{isArabic ? "التالي" : "Next"}</a>}</div></div>
+        <div className="flex items-center justify-between border-t border-slate-100 px-5 py-3 text-xs text-slate-500"><span>{isArabic ? `صفحة ${page} من ${pageCount}` : `Page ${page} of ${pageCount}`}</span><div className="flex gap-2">{page > 1 && <Link href={`?q=${encodeURIComponent(search)}&status=${status ?? ""}&page=${page - 1}`} className="rounded-md border border-slate-200 px-3 py-1.5 hover:bg-sand">{isArabic ? "السابق" : "Previous"}</Link>}{page < pageCount && <Link href={`?q=${encodeURIComponent(search)}&status=${status ?? ""}&page=${page + 1}`} className="rounded-md border border-slate-200 px-3 py-1.5 hover:bg-sand">{isArabic ? "التالي" : "Next"}</Link>}</div></div>
       </section>
     </div>
   );

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { formatCurrency } from "./format";
+import { formatAmount, formatCurrency } from "./format";
 
 describe("formatCurrency", () => {
   it.each([
@@ -24,5 +24,17 @@ describe("formatCurrency", () => {
   it("rejects non-finite currency amounts", () => {
     expect(() => formatCurrency("NaN", "en")).toThrow(TypeError);
     expect(() => formatCurrency("Infinity", "ar")).toThrow(TypeError);
+  });
+});
+
+describe("formatAmount", () => {
+  it("formats exact amounts without a currency symbol", () => {
+    expect(formatAmount("93900", "en")).toBe("93,900.00");
+    expect(formatAmount("13146.5", "en")).toBe("13,146.50");
+    expect(formatAmount("107046", "ar")).toBe(new Intl.NumberFormat("ar-EG", { minimumFractionDigits: 2 }).format(107046));
+  });
+
+  it("rejects non-finite amounts", () => {
+    expect(() => formatAmount("NaN", "ar")).toThrow(TypeError);
   });
 });

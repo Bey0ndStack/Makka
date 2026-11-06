@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
-  ArrowDownUp, BarChart3, BookOpenCheck, CircleDollarSign, ClipboardList,
+  ArrowDownUp, Banknote, BarChart3, BookOpenCheck, CircleDollarSign, ClipboardList,
   FileSpreadsheet, LayoutDashboard, Settings2, Store, Users, WalletCards
 } from "lucide-react";
 import { translate, type Locale, type TranslationKey } from "@/lib/i18n";
@@ -26,6 +26,7 @@ const navGroups: {
       { href: "invoices", key: "invoices", icon: FileSpreadsheet, permission: "invoice.read" },
       { href: "payments", key: "payments", icon: WalletCards, permission: "payment.read" },
       { href: "debts", key: "debts", icon: CircleDollarSign, permission: "debt.read" },
+      { href: "cheques", key: "cheques", icon: Banknote, permission: "cheque.read" },
       { href: "reports", key: "reports", icon: BarChart3, permission: "report.read" },
       { href: "imports", key: "imports", icon: ArrowDownUp, permission: "import.execute" }
     ]

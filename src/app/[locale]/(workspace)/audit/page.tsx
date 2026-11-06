@@ -1,3 +1,5 @@
+import Link from "next/link";
+import Form from "next/form";
 import { Search } from "lucide-react";
 import { BrandSectionBadge } from "@/components/brand-section-badge";
 import { isLocale } from "@/lib/i18n";
@@ -5,6 +7,16 @@ import { market } from "@/lib/market";
 import { requirePermission } from "@/lib/permissions";
 import { prisma } from "@/lib/prisma";
 import { notFound } from "next/navigation";
+import { unstable_cache } from "next/cache";
+
+const getAuditFilterOptions = unstable_cache(async () => {
+  const [actors, actions, entityTypes] = await Promise.all([
+    prisma.user.findMany({ where: { auditLogs: { some: {} } }, select: { id: true, name: true }, orderBy: { name: "asc" } }),
+    prisma.auditLog.groupBy({ by: ["action"], orderBy: { action: "asc" } }),
+    prisma.auditLog.groupBy({ by: ["entityType"], orderBy: { entityType: "asc" } })
+  ]);
+  return { actors, actions: actions.map((item) => item.action), entityTypes: entityTypes.map((item) => item.entityType) };
+}, ["audit-filter-options"], { revalidate: 300 });
 
 export default async function AuditPage({
   params,
@@ -35,7 +47,7 @@ export default async function AuditPage({
     ...(filters.actor ? { actorUserId: filters.actor.slice(0, 40) } : {}),
     ...(fromDate || toDate ? { createdAt: { ...(fromDate ? { gte: fromDate } : {}), ...(toDate ? { lte: toDate } : {}) } } : {})
   };
-  const [logs, count, actors, actions, entityTypes] = await Promise.all([
+  const [logs, count, { actors, actions, entityTypes }] = await Promise.all([
     prisma.auditLog.findMany({
       where,
       orderBy: { createdAt: "desc" },
@@ -57,12 +69,14 @@ export default async function AuditPage({
       }
     }),
     prisma.auditLog.count({ where }),
-    prisma.user.findMany({ where: { auditLogs: { some: {} } }, select: { id: true, name: true }, orderBy: { name: "asc" } }),
-    prisma.auditLog.findMany({ distinct: ["action"], select: { action: true }, orderBy: { action: "asc" } }),
-    prisma.auditLog.findMany({ distinct: ["entityType"], select: { entityType: true }, orderBy: { entityType: "asc" } })
+    getAuditFilterOptions()
   ]);
   const pageCount = Math.max(1, Math.ceil(count / 25));
-  const baseQuery = new URLSearchParams(Object.entries(filters).filter(([, value]) => Boolean(value)) as [string, string][]);
+  const pageHref = (target: number) => {
+    const next = new URLSearchParams(Object.entries(filters).filter(([key, value]) => key !== "page" && typeof value === "string" && value) as [string, string][]);
+    next.set("page", String(target));
+    return `?${next.toString()}`;
+  };
   const timestamp = (date: Date) => new Intl.DateTimeFormat(isArabic ? market.arabicLocale : market.englishLocale, {
     timeZone: market.timeZone, dateStyle: "medium", timeStyle: "short"
   }).format(date);
@@ -78,7 +92,7 @@ export default async function AuditPage({
         <p className="mt-1.5 text-sm text-slate-500">{isArabic ? "تاريخ غير قابل للتعديل للعمليات المنفذة على المنصة" : "An append-only history of actions performed in the platform"}</p>
       </div>
 
-      <form className="grid gap-3 rounded-xl border border-slate-200 bg-white p-4 shadow-panel sm:grid-cols-2 xl:grid-cols-6">
+      <Form action={`/${locale}/audit`} className="grid gap-3 rounded-xl border border-slate-200 bg-white p-4 shadow-panel sm:grid-cols-2 xl:grid-cols-6">
         <label className="flex items-center gap-2 rounded-lg border border-slate-200 px-3 xl:col-span-2">
           <Search size={16} className="text-slate-400" aria-hidden="true" />
           <input name="q" defaultValue={filters.q} maxLength={100} placeholder={isArabic ? "بحث في العمليات والسجلات" : "Search actions and records"} className="h-10 w-full bg-transparent text-sm outline-none" />
@@ -89,18 +103,18 @@ export default async function AuditPage({
         </select>
         <select name="action" defaultValue={filters.action ?? ""} aria-label={isArabic ? "العملية" : "Action"} className="h-11 rounded-lg border border-slate-200 bg-white px-3 text-sm text-slate-600">
           <option value="">{isArabic ? "كل العمليات" : "All actions"}</option>
-          {actions.map(({ action }) => <option key={action} value={action}>{action}</option>)}
+          {actions.map((action) => <option key={action} value={action}>{action}</option>)}
         </select>
         <select name="entity" defaultValue={filters.entity ?? ""} aria-label={isArabic ? "نوع السجل" : "Entity"} className="h-11 rounded-lg border border-slate-200 bg-white px-3 text-sm text-slate-600">
           <option value="">{isArabic ? "كل السجلات" : "All entities"}</option>
-          {entityTypes.map(({ entityType }) => <option key={entityType} value={entityType}>{entityType}</option>)}
+          {entityTypes.map((entityType) => <option key={entityType} value={entityType}>{entityType}</option>)}
         </select>
         <div className="flex gap-2 sm:col-span-2 xl:col-span-3">
           <label className="flex-1"><span className="sr-only">{isArabic ? "من تاريخ" : "From date"}</span><input type="date" name="from" defaultValue={filters.from} className="h-11 w-full rounded-lg border border-slate-200 px-3 text-sm text-slate-600" /></label>
           <label className="flex-1"><span className="sr-only">{isArabic ? "إلى تاريخ" : "To date"}</span><input type="date" name="to" defaultValue={filters.to} className="h-11 w-full rounded-lg border border-slate-200 px-3 text-sm text-slate-600" /></label>
         </div>
         <button className="h-11 rounded-lg bg-brand-700 px-4 text-sm font-semibold text-white hover:bg-brand-800 sm:col-span-2 xl:col-span-3">{isArabic ? "تطبيق الفلاتر" : "Apply filters"}</button>
-      </form>
+      </Form>
 
       <section className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-panel">
         <div className="border-b border-slate-100 px-5 py-4 text-xs text-slate-500">{count} {isArabic ? "سجل" : "events"}</div>
@@ -134,8 +148,8 @@ export default async function AuditPage({
         <div className="flex items-center justify-between border-t border-slate-100 px-5 py-3 text-xs text-slate-500">
           <span>{isArabic ? `صفحة ${page} من ${pageCount}` : `Page ${page} of ${pageCount}`}</span>
           <div className="flex gap-2">
-            {page > 1 && <a href={`?${baseQuery.toString()}&page=${page - 1}`} className="rounded-md border border-slate-200 px-3 py-1.5 hover:bg-sand">{isArabic ? "السابق" : "Previous"}</a>}
-            {page < pageCount && <a href={`?${baseQuery.toString()}&page=${page + 1}`} className="rounded-md border border-slate-200 px-3 py-1.5 hover:bg-sand">{isArabic ? "التالي" : "Next"}</a>}
+            {page > 1 && <Link href={pageHref(page - 1)} className="rounded-md border border-slate-200 px-3 py-1.5 hover:bg-sand">{isArabic ? "السابق" : "Previous"}</Link>}
+            {page < pageCount && <Link href={pageHref(page + 1)} className="rounded-md border border-slate-200 px-3 py-1.5 hover:bg-sand">{isArabic ? "التالي" : "Next"}</Link>}
           </div>
         </div>
       </section>

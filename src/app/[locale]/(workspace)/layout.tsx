@@ -57,13 +57,13 @@ export default async function WorkspaceLayout({
           </div>
           <div className="flex items-center gap-2 sm:gap-3">
             <WorkspaceSearch locale={locale} />
-            <LanguageSwitch locale={locale} pathname={pathname} />
+            <LanguageSwitch locale={locale} />
             <div className="flex h-9 w-9 items-center justify-center rounded-full bg-brand-100 text-sm font-bold text-brand-800 md:hidden" title={user.name}>{user.name.slice(0, 1)}</div>
           </div>
         </header>
         <main className="mx-auto w-full max-w-[1440px] px-4 py-6 sm:px-7 sm:py-8">{children}</main>
       </div>
-      <MakkaAIChat locale={locale} configured={isMakkaAIConfigured()} />
+      <MakkaAIChat locale={locale} configured={isMakkaAIConfigured()} permissionKeys={[...permissions]} />
     </div>
   );
 }

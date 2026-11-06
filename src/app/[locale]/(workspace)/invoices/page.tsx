@@ -1,4 +1,5 @@
 import Link from "next/link";
+import Form from "next/form";
 import { Prisma } from "@prisma/client";
 import { Plus, Search } from "lucide-react";
 import { BrandSectionBadge } from "@/components/brand-section-badge";
@@ -22,7 +23,6 @@ export default async function InvoicesPage({
   if (!isLocale(rawLocale)) notFound();
   const locale: Locale = rawLocale;
   const actor = await requirePermission("invoice.read", locale);
-  const canCreate = await userHasPermission(actor.id, "invoice.create");
   const isArabic = locale === "ar";
   const search = (query.q ?? "").trim().slice(0, 100);
   const status = invoiceStatuses.includes(query.status as (typeof invoiceStatuses)[number]) ? query.status as (typeof invoiceStatuses)[number] : undefined;
@@ -37,7 +37,7 @@ export default async function InvoicesPage({
       ]
     } : {})
   };
-  const [invoices, count] = await Promise.all([
+  const [invoices, count, canCreate] = await Promise.all([
     prisma.invoice.findMany({
       where,
       orderBy: { transactionDate: "desc" },
@@ -46,6 +46,7 @@ export default async function InvoicesPage({
       select: {
         id: true,
         invoiceNumber: true,
+        internalNumber: true,
         transactionDate: true,
         totalAmount: true,
         status: true,
@@ -56,7 +57,8 @@ export default async function InvoicesPage({
         }
       }
     }),
-    prisma.invoice.count({ where })
+    prisma.invoice.count({ where }),
+    userHasPermission(actor.id, "invoice.create")
   ]);
   const pageCount = Math.max(1, Math.ceil(count / 20));
   const statusLabel: Record<string, string> = isArabic
@@ -73,11 +75,11 @@ export default async function InvoicesPage({
         </div>
         <div className="mt-1.5 flex flex-wrap items-center justify-between gap-3"><p className="text-sm text-slate-500">{isArabic ? "الفواتير المالية وسدادها المخصص لكل تاجر" : "Merchant invoices and the payments allocated to them"}</p>{canCreate && <Link href={`/${locale}/invoices/new`} className="inline-flex h-10 items-center gap-2 rounded-lg bg-brand-700 px-3 text-sm font-semibold text-white hover:bg-brand-800"><Plus size={16} aria-hidden="true" />{isArabic ? "إنشاء فاتورة" : "Create invoice"}</Link>}</div>
       </div>
-      <form className="grid gap-3 rounded-xl border border-slate-200 bg-white p-3 shadow-panel sm:grid-cols-[1fr_220px_auto]">
+      <Form action={`/${locale}/invoices`} className="grid gap-3 rounded-xl border border-slate-200 bg-white p-3 shadow-panel sm:grid-cols-[1fr_220px_auto]">
         <label className="flex items-center gap-2 rounded-lg border border-slate-200 px-3"><Search size={16} className="text-slate-400" aria-hidden="true" /><input name="q" defaultValue={query.q} maxLength={100} placeholder={isArabic ? "ابحث برقم الفاتورة أو التاجر" : "Search invoice or merchant"} className="h-10 w-full bg-transparent text-sm outline-none" /></label>
         <label><span className="sr-only">{isArabic ? "الحالة" : "Status"}</span><select name="status" defaultValue={status ?? ""} className="h-11 w-full rounded-lg border border-slate-200 bg-white px-3 text-sm text-slate-600"><option value="">{isArabic ? "كل الحالات" : "All statuses"}</option>{invoiceStatuses.map((item) => <option key={item} value={item}>{statusLabel[item]}</option>)}</select></label>
         <button className="h-11 rounded-lg bg-brand-700 px-4 text-sm font-semibold text-white hover:bg-brand-800">{isArabic ? "تطبيق" : "Apply"}</button>
-      </form>
+      </Form>
       <section className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-panel">
         <div className="flex items-center justify-between border-b border-slate-100 px-5 py-4"><h2 className="text-sm font-bold text-slate-800">{isArabic ? "قائمة الفواتير" : "Invoice register"}</h2><span className="text-xs text-slate-400">{count} {isArabic ? "فاتورة" : "invoices"}</span></div>
         <div className="overflow-x-auto">
@@ -88,7 +90,7 @@ export default async function InvoicesPage({
                 const paid = invoice.allocations.reduce((sum, allocation) => sum.plus(allocation.amount), new Prisma.Decimal(0));
                 const outstanding = calculateOutstanding(invoice.totalAmount, [paid]);
                 return <tr key={invoice.id} className="hover:bg-sand/70">
-                  <td className="px-5 py-3.5 font-semibold text-slate-800"><Link href={`/${locale}/invoices/${invoice.id}`} className="hover:text-brand-700">{invoice.invoiceNumber}</Link></td>
+                  <td className="px-5 py-3.5 font-semibold text-slate-800"><Link href={`/${locale}/invoices/${invoice.id}`} className="hover:text-brand-700">{invoice.invoiceNumber}<span className="mt-1 block text-[11px] font-normal text-slate-400">#{invoice.internalNumber}</span></Link></td>
                   <td className="px-5 py-3.5"><Link href={`/${locale}/merchants/${invoice.merchant.id}`} className="text-slate-700 hover:text-brand-700">{invoice.merchant.name}<span className="mt-1 block text-[11px] text-slate-400">{invoice.merchant.merchantCode}</span></Link></td>
                   <td className="px-5 py-3.5 text-slate-500">{formatDate(invoice.transactionDate, locale)}</td>
                   <td className="px-5 py-3.5 text-right tabular-nums text-slate-700" dir="ltr">{formatCurrency(invoice.totalAmount.toString(), locale)}</td>

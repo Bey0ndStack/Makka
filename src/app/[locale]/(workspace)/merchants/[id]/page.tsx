@@ -54,6 +54,7 @@ export default async function MerchantDetailsPage({
           <div className="space-y-4 text-sm">
             <p className="flex items-center gap-3 text-slate-600"><Phone size={16} className="text-slate-400" aria-hidden="true" /><span dir="ltr">{merchant.phone}</span></p>
             {(merchant.city || merchant.region || merchant.address) && <p className="flex items-start gap-3 text-slate-600"><MapPin size={16} className="mt-0.5 shrink-0 text-slate-400" aria-hidden="true" /><span>{[merchant.address, merchant.region, merchant.city].filter(Boolean).join(" · ")}</span></p>}
+            {merchant.taxNumber && <p className="flex items-center gap-3 text-slate-600"><FileText size={16} className="text-slate-400" aria-hidden="true" /><span>{isArabic ? "رقم التسجيل الضريبي" : "Tax registration no."}: <span dir="ltr">{merchant.taxNumber}</span></span></p>}
             {merchant.notes && <p className="border-t border-slate-100 pt-4 leading-6 text-slate-500">{merchant.notes}</p>}
           </div>
         </article>

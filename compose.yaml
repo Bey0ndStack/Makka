@@ -22,7 +22,7 @@ services:
       context: .
       target: development
     restart: unless-stopped
-    command: ["sh", "-c", "npx prisma generate && npx prisma migrate deploy && npm run db:seed && npm run dev -- --hostname 0.0.0.0"]
+    command: ["sh", "-c", "npx prisma generate && npx prisma migrate deploy && npm run db:seed && npm run dev:webpack -- --hostname 0.0.0.0"]
     environment:
       NODE_ENV: development
       DATABASE_URL: ${DATABASE_URL:-postgresql://makkah:makkah-local-only@db:5432/makkah?schema=public}
@@ -33,6 +33,7 @@ services:
       MAKKA_AI_PROVIDER: ${MAKKA_AI_PROVIDER:-}
       MAKKA_AI_API_KEY: ${MAKKA_AI_API_KEY:-}
       MAKKA_AI_MODEL: ${MAKKA_AI_MODEL:-}
+      MAKKA_AI_BASE_URL: ${MAKKA_AI_BASE_URL:-}
       WATCHPACK_POLLING: "true"
     ports:
       - "3000:3000"

@@ -1,5 +1,6 @@
 generator client {
-  provider = "prisma-client-js"
+  provider        = "prisma-client-js"
+  previewFeatures = ["nativeDistinct"]
 }
 
 datasource db {
@@ -36,6 +37,12 @@ enum PaymentMethod {
   OTHER
 }
 
+enum ChequeStatus {
+  PENDING
+  CLEARED
+  BOUNCED
+}
+
 enum ImportStatus {
   VALIDATING
   COMPLETED
@@ -64,8 +71,11 @@ model User {
   allocations       PaymentAllocation[]
   auditLogs         AuditLog[]
   importBatches     ImportBatch[]
+  createdCheques    Cheque[]            @relation("ChequeCreatedBy")
+  updatedCheques    Cheque[]            @relation("ChequeUpdatedBy")
 
   @@index([status])
+  @@index([createdAt])
   @@map("users")
 }
 
@@ -122,6 +132,7 @@ model Merchant {
   address        String?
   city           String?
   region         String?
+  taxNumber      String?
   status         MerchantStatus @default(ACTIVE)
   notes          String?
   createdById    String?
@@ -137,6 +148,9 @@ model Merchant {
   @@index([phone])
   @@index([status, city])
   @@index([createdAt])
+  @@index([name(ops: raw("gin_trgm_ops"))], type: Gin, map: "merchants_name_trgm_idx")
+  @@index([merchantCode(ops: raw("gin_trgm_ops"))], type: Gin, map: "merchants_merchantCode_trgm_idx")
+  @@index([phone(ops: raw("gin_trgm_ops"))], type: Gin, map: "merchants_phone_trgm_idx")
   @@map("merchants")
 }
 
@@ -160,12 +174,15 @@ model Product {
 model Invoice {
   id                 String              @id @default(cuid())
   invoiceNumber      String              @unique
+  internalNumber     Int                 @unique @default(autoincrement())
   merchantId         String
   transactionDate    DateTime            @default(now())
   dueDate            DateTime?
   status             InvoiceStatus       @default(DRAFT)
   notes              String?
   subtotal           Decimal             @db.Decimal(12, 2)
+  taxRate            Decimal             @default(0) @db.Decimal(5, 2)
+  taxAmount          Decimal             @default(0) @db.Decimal(12, 2)
   totalAmount        Decimal             @db.Decimal(12, 2)
   createdById        String?
   updatedById        String?
@@ -184,6 +201,7 @@ model Invoice {
   @@index([merchantId, status, transactionDate])
   @@index([status, dueDate])
   @@index([transactionDate])
+  @@index([invoiceNumber(ops: raw("gin_trgm_ops"))], type: Gin, map: "invoices_invoiceNumber_trgm_idx")
   @@map("invoices")
 }
 
@@ -191,6 +209,9 @@ model InvoiceItem {
   id          String   @id @default(cuid())
   invoiceId   String
   productId   String?
+  codeName    String?
+  itemCode    String?
+  unit        String?
   description String
   quantity    Decimal  @db.Decimal(12, 3)
   unitPrice   Decimal  @db.Decimal(12, 2)
@@ -227,6 +248,8 @@ model Payment {
 
   @@index([merchantId, status, paymentDate])
   @@index([status, paymentDate])
+  @@index([paymentDate])
+  @@index([reference(ops: raw("gin_trgm_ops"))], type: Gin, map: "payments_reference_trgm_idx")
   @@map("payments")
 }
 
@@ -244,6 +267,29 @@ model PaymentAllocation {
   @@unique([paymentId, invoiceId])
   @@index([invoiceId])
   @@map("payment_allocations")
+}
+
+model Cheque {
+  id           String       @id @default(cuid())
+  companyName  String
+  amount       Decimal      @db.Decimal(12, 2)
+  chequeDate   DateTime     @db.Date
+  chequeNumber String
+  bankName     String
+  status       ChequeStatus @default(PENDING)
+  notes        String?
+  createdById  String?
+  updatedById  String?
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
+  createdBy    User?        @relation("ChequeCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
+  updatedBy    User?        @relation("ChequeUpdatedBy", fields: [updatedById], references: [id], onDelete: SetNull)
+
+  @@index([chequeDate])
+  @@index([status, chequeDate])
+  @@index([chequeNumber])
+  @@index([companyName(ops: raw("gin_trgm_ops"))], type: Gin, map: "cheques_companyName_trgm_idx")
+  @@map("cheques")
 }
 
 model AuditLog {

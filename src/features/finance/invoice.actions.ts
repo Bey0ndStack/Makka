@@ -6,6 +6,8 @@ import { headers } from "next/headers";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
+import { calculateInvoiceTotals } from "@/features/finance/invoice-totals";
+import { company } from "@/lib/company";
 import { isLocale } from "@/lib/i18n";
 import { requirePermission } from "@/lib/permissions";
 import { prisma } from "@/lib/prisma";
@@ -13,7 +15,10 @@ import { prisma } from "@/lib/prisma";
 const lineSchema = z.object({
   description: z.string().trim().min(2).max(200),
   quantity: z.string().trim().regex(/^\d{1,9}(?:\.\d{1,3})?$/),
-  unitPrice: z.string().trim().regex(/^\d{1,10}(?:\.\d{1,2})?$/)
+  unitPrice: z.string().trim().regex(/^\d{1,10}(?:\.\d{1,2})?$/),
+  codeName: z.string().trim().max(100).optional(),
+  itemCode: z.string().trim().max(100).optional(),
+  unit: z.string().trim().max(20).optional()
 });
 const invoiceSchema = z.object({
   merchantId: z.string().min(1),
@@ -21,6 +26,7 @@ const invoiceSchema = z.object({
   dueDate: z.string().date().optional(),
   status: z.enum(["DRAFT", "CONFIRMED"]),
   notes: z.string().trim().max(1000).optional(),
+  applyVat: z.boolean(),
   items: z.array(lineSchema).min(1).max(100)
 });
 export type InvoiceFormState = { error?: string; success?: string };
@@ -52,25 +58,17 @@ function parseInput(formData: FormData) {
     dueDate: formData.get("dueDate") || undefined,
     status: formData.get("status"),
     notes: formData.get("notes") || undefined,
+    applyVat: formData.get("applyVat") === "on",
     items
   });
 }
 
-function calculateItems(items: z.infer<typeof lineSchema>[]) {
-  const normalized = items.map((item) => {
-    const quantity = new Prisma.Decimal(item.quantity);
-    const unitPrice = new Prisma.Decimal(item.unitPrice);
-    return {
-      description: item.description,
-      quantity,
-      unitPrice,
-      subtotal: quantity.mul(unitPrice).toDecimalPlaces(2, Prisma.Decimal.ROUND_HALF_UP)
-    };
-  });
-  if (normalized.some((item) => item.quantity.lte(0) || item.unitPrice.lt(0))) return null;
-  const total = normalized.reduce((sum, item) => sum.plus(item.subtotal), new Prisma.Decimal(0));
-  if (total.lte(0) || total.gte(new Prisma.Decimal("10000000000"))) return null;
-  return { normalized, total };
+function calculateItems(data: z.infer<typeof invoiceSchema>) {
+  return calculateInvoiceTotals(data.items, data.applyVat ? company.defaultVatRate : "0");
+}
+
+function lineSnapshot(items: NonNullable<ReturnType<typeof calculateItems>>["normalized"]) {
+  return items.map((item) => ({ codeName: item.codeName, itemCode: item.itemCode, unit: item.unit, description: item.description, quantity: item.quantity.toString(), unitPrice: item.unitPrice.toFixed(2), subtotal: item.subtotal.toFixed(2) }));
 }
 
 export async function createInvoiceAction(_previous: InvoiceFormState, formData: FormData): Promise<InvoiceFormState> {
@@ -78,7 +76,7 @@ export async function createInvoiceAction(_previous: InvoiceFormState, formData:
   const actor = await requirePermission("invoice.create", locale);
   const parsed = parseInput(formData);
   if (!parsed?.success) return { error: locale === "ar" ? "راجع بيانات الفاتورة وبنودها." : "Check the invoice details and line items." };
-  const calculated = calculateItems(parsed.data.items);
+  const calculated = calculateItems(parsed.data);
   if (!calculated) return { error: locale === "ar" ? "تحقق من الكميات والأسعار والإجمالي." : "Check quantities, prices, and the invoice total." };
   if (parsed.data.dueDate && parsed.data.dueDate < parsed.data.transactionDate) return { error: locale === "ar" ? "تاريخ الاستحقاق يجب ألا يسبق تاريخ الفاتورة." : "The due date cannot be before the invoice date." };
   const requestHeaders = await headers();
@@ -96,7 +94,9 @@ export async function createInvoiceAction(_previous: InvoiceFormState, formData:
         dueDate: parsed.data.dueDate ? new Date(`${parsed.data.dueDate}T12:00:00`) : null,
         status: parsed.data.status,
         notes: parsed.data.notes || null,
-        subtotal: calculated.total,
+        subtotal: calculated.subtotal,
+        taxRate: calculated.taxRate,
+        taxAmount: calculated.taxAmount,
         totalAmount: calculated.total,
         createdById: actor.id,
         items: { create: calculated.normalized }
@@ -112,8 +112,11 @@ export async function createInvoiceAction(_previous: InvoiceFormState, formData:
           invoiceNumber,
           merchantId: merchant.id,
           status: invoice.status,
+          subtotal: calculated.subtotal.toFixed(2),
+          taxRate: calculated.taxRate.toFixed(2),
+          taxAmount: calculated.taxAmount.toFixed(2),
           totalAmount: calculated.total.toFixed(2),
-          items: calculated.normalized.map((item) => ({ description: item.description, quantity: item.quantity.toString(), unitPrice: item.unitPrice.toFixed(2), subtotal: item.subtotal.toFixed(2) }))
+          items: lineSnapshot(calculated.normalized)
         },
         ...requestMetadata
       }
@@ -133,7 +136,7 @@ export async function updateInvoiceAction(_previous: InvoiceFormState, formData:
   if (typeof invoiceId !== "string" || !invoiceId) return { error: locale === "ar" ? "الفاتورة غير محددة." : "Invoice not specified." };
   const parsed = parseInput(formData);
   if (!parsed?.success) return { error: locale === "ar" ? "راجع بيانات الفاتورة وبنودها." : "Check the invoice details and line items." };
-  const calculated = calculateItems(parsed.data.items);
+  const calculated = calculateItems(parsed.data);
   if (!calculated) return { error: locale === "ar" ? "تحقق من الكميات والأسعار والإجمالي." : "Check quantities, prices, and the invoice total." };
   if (parsed.data.dueDate && parsed.data.dueDate < parsed.data.transactionDate) return { error: locale === "ar" ? "تاريخ الاستحقاق يجب ألا يسبق تاريخ الفاتورة." : "The due date cannot be before the invoice date." };
   const requestHeaders = await headers();
@@ -156,7 +159,9 @@ export async function updateInvoiceAction(_previous: InvoiceFormState, formData:
         dueDate: parsed.data.dueDate ? new Date(`${parsed.data.dueDate}T12:00:00`) : null,
         status: parsed.data.status,
         notes: parsed.data.notes || null,
-        subtotal: calculated.total,
+        subtotal: calculated.subtotal,
+        taxRate: calculated.taxRate,
+        taxAmount: calculated.taxAmount,
         totalAmount: calculated.total,
         updatedById: actor.id,
         items: { create: calculated.normalized }
@@ -169,7 +174,7 @@ export async function updateInvoiceAction(_previous: InvoiceFormState, formData:
         entityType: "Invoice",
         entityId: invoiceId,
         beforeData: { status: existing.status, totalAmount: existing.totalAmount.toString(), merchantId: existing.merchantId },
-        afterData: { status: parsed.data.status, totalAmount: calculated.total.toFixed(2), merchantId: merchant.id, items: calculated.normalized.map((item) => ({ description: item.description, quantity: item.quantity.toString(), unitPrice: item.unitPrice.toFixed(2) })) },
+        afterData: { status: parsed.data.status, subtotal: calculated.subtotal.toFixed(2), taxAmount: calculated.taxAmount.toFixed(2), totalAmount: calculated.total.toFixed(2), merchantId: merchant.id, items: lineSnapshot(calculated.normalized) },
         ...requestMetadata
       }
     });
@@ -178,6 +183,7 @@ export async function updateInvoiceAction(_previous: InvoiceFormState, formData:
   if (result !== "updated") return { error: result === "missing" ? (locale === "ar" ? "الفاتورة غير موجودة." : "Invoice not found.") : result === "merchant" ? (locale === "ar" ? "التاجر غير موجود أو غير نشط." : "The merchant does not exist or is inactive.") : (locale === "ar" ? "يمكن تعديل المسودات فقط قبل تسجيل أي تحصيل عليها." : "Only drafts without recorded payments can be edited.") };
   revalidatePath(`/${locale}/invoices`);
   revalidatePath(`/${locale}/invoices/${invoiceId}`);
+  revalidatePath(`/${locale}/dashboard`);
   return { success: locale === "ar" ? "تم حفظ تعديلات الفاتورة." : "Invoice changes saved." };
 }
 

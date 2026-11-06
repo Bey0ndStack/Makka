@@ -16,6 +16,7 @@ const createMerchantSchema = z.object({
   address: z.string().trim().max(240).optional(),
   city: z.string().trim().max(100).optional(),
   region: z.string().trim().max(100).optional(),
+  taxNumber: z.string().trim().regex(/^[0-9-]{3,30}$/).optional(),
   notes: z.string().trim().max(1000).optional()
 });
 
@@ -35,6 +36,7 @@ export async function createMerchantAction(_previousState: MerchantFormState, fo
     address: formData.get("address") || undefined,
     city: formData.get("city") || undefined,
     region: formData.get("region") || undefined,
+    taxNumber: formData.get("taxNumber") || undefined,
     notes: formData.get("notes") || undefined
   });
 
@@ -59,6 +61,7 @@ export async function createMerchantAction(_previousState: MerchantFormState, fo
         address: details.address,
         city: details.city,
         region: details.region,
+        taxNumber: details.taxNumber,
         notes: details.notes,
         createdById: actor.id
       }
@@ -73,7 +76,8 @@ export async function createMerchantAction(_previousState: MerchantFormState, fo
           merchantCode: created.merchantCode,
           name: created.name,
           phone: created.phone,
-          city: created.city
+          city: created.city,
+          taxNumber: created.taxNumber
         },
         ipAddress: requestHeaders.get("x-real-ip"),
         userAgent: requestHeaders.get("user-agent"),

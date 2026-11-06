@@ -22,21 +22,26 @@ export async function getMerchantDirectory(search: string, page: number, pageSiz
       outstanding: string;
       lastTransactionAt: Date | null;
     }>>(Prisma.sql`
-      SELECT m."id", m."merchantCode", m."name", m."phone", m."city", m."region", m."status",
+      WITH page AS (
+        SELECT m."id", m."merchantCode", m."name", m."phone", m."city", m."region", m."status", m."createdAt"
+        FROM "merchants" m
+        ${filter}
+        ORDER BY m."createdAt" DESC
+        LIMIT ${pageSize} OFFSET ${offset}
+      )
+      SELECT pg."id", pg."merchantCode", pg."name", pg."phone", pg."city", pg."region", pg."status",
         COALESCE(SUM(i."totalAmount" - COALESCE(allocated.amount, 0)), 0)::text AS outstanding,
         MAX(i."transactionDate") AS "lastTransactionAt"
-      FROM "merchants" m
-      LEFT JOIN "invoices" i ON i."merchantId" = m."id" AND i."status" = 'CONFIRMED'
-      LEFT JOIN (
-        SELECT pa."invoiceId", SUM(pa."amount") AS amount
+      FROM page pg
+      LEFT JOIN "invoices" i ON i."merchantId" = pg."id" AND i."status" = 'CONFIRMED'
+      LEFT JOIN LATERAL (
+        SELECT SUM(pa."amount") AS amount
         FROM "payment_allocations" pa
         JOIN "payments" p ON p."id" = pa."paymentId" AND p."status" = 'COMPLETED'
-        GROUP BY pa."invoiceId"
-      ) allocated ON allocated."invoiceId" = i."id"
-      ${filter}
-      GROUP BY m."id"
-      ORDER BY m."createdAt" DESC
-      LIMIT ${pageSize} OFFSET ${offset}
+        WHERE pa."invoiceId" = i."id"
+      ) allocated ON true
+      GROUP BY pg."id", pg."merchantCode", pg."name", pg."phone", pg."city", pg."region", pg."status", pg."createdAt"
+      ORDER BY pg."createdAt" DESC
     `),
     prisma.merchant.count({ where: query ? {
       status: { not: "ARCHIVED" },
@@ -64,6 +69,7 @@ export async function getMerchantDetails(id: string) {
         address: true,
         city: true,
         region: true,
+        taxNumber: true,
         status: true,
         notes: true,
         createdAt: true,
